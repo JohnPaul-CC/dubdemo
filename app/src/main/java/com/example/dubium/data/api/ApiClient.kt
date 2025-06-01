@@ -18,7 +18,7 @@ object ApiClient {
     private const val BASE_URL_LOCALHOST = "http://localhost:8080/"    // Para testing en PC
 
     // Usar URL según el entorno
-    private const val BASE_URL = BASE_URL_EMULATOR  // ← Cambiar según necesites
+    private const val BASE_URL = BASE_URL_LOCALHOST // ← Cambiar según necesites
 
     // 📝 Configuración de logging para debugging
     private val loggingInterceptor = HttpLoggingInterceptor().apply {

@@ -14,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 import com.example.dubium.data.repository.UserRepository
 import com.example.dubium.data.storage.TokenManager
 import com.example.dubium.ui.viewmodels.LoginViewModel
@@ -27,7 +29,6 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit = {},
     onNavigateToHome: (String) -> Unit = {}
 ) {
-
     val context = LocalContext.current
     val viewModel = remember {
         LoginViewModel(
@@ -36,11 +37,20 @@ fun LoginScreen(
         )
     }
 
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    // Observar estados del ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+    val username by viewModel.username.collectAsState()
+    val password by viewModel.password.collectAsState()
 
     // Color granate personalizado
     val burgundyColor = Color(0xFF8B1538)
+
+    // Verificar auto-login al cargar la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.checkAutoLogin { autoLoginUsername ->
+            onNavigateToHome(autoLoginUsername)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -92,10 +102,30 @@ fun LoginScreen(
                         modifier = Modifier.padding(bottom = 32.dp)
                     )
 
+                    // Mensaje de error si existe
+                    if (uiState.showError) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFEBEE)
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = uiState.errorMessage,
+                                color = Color(0xFFD32F2F),
+                                modifier = Modifier.padding(12.dp),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
                     // Campo Username
                     OutlinedTextField(
                         value = username,
-                        onValueChange = { username = it },
+                        onValueChange = viewModel::updateUsername,
                         label = { Text("Username") },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -105,14 +135,16 @@ fun LoginScreen(
                             focusedBorderColor = burgundyColor,
                             focusedLabelColor = burgundyColor,
                             cursorColor = burgundyColor
-                        )
+                        ),
+                        enabled = uiState.enableLoginButton
                     )
 
                     // Campo Password
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = viewModel::updatePassword,
                         label = { Text("Password") },
+                        visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 24.dp),
@@ -121,14 +153,16 @@ fun LoginScreen(
                             focusedBorderColor = burgundyColor,
                             focusedLabelColor = burgundyColor,
                             cursorColor = burgundyColor
-                        )
+                        ),
+                        enabled = uiState.enableLoginButton
                     )
 
                     // Botón de login con flecha
                     Button(
                         onClick = {
-                            // Simular login exitoso y navegar a home
-                            onNavigateToHome(username.ifEmpty { "Usuario" })
+                            viewModel.login { loggedInUsername ->
+                                onNavigateToHome(loggedInUsername)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -137,13 +171,22 @@ fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = burgundyColor
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = uiState.enableLoginButton
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = "Login",
-                            tint = Color.White
-                        )
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = "Login",
+                                tint = Color.White
+                            )
+                        }
                     }
 
                     // Texto "or"
@@ -163,7 +206,8 @@ fun LoginScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = burgundyColor
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = uiState.enableLoginButton
                     ) {
                         Text(
                             text = "Register",
