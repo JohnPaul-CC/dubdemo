@@ -66,15 +66,21 @@ class UserRepository(
      */
     suspend fun verifyToken(token: String): Result<Map<String, Any>> {
         return try {
+            println("🔍 UserRepository: verifyToken llamado") // Debug
             val authHeader = ApiClient.createAuthHeader(token)
             val response = apiService.verifyToken(authHeader)
 
+            println("🔍 UserRepository: verifyToken response code: ${response.code()}") // Debug
+
             if (response.isSuccessful && response.body() != null) {
+                println("✅ UserRepository: Token verificado exitosamente") // Debug
                 Result.success(response.body()!!)
             } else {
+                println("❌ UserRepository: Token verification failed") // Debug
                 Result.failure(Exception("Token inválido"))
             }
         } catch (e: Exception) {
+            println("💥 UserRepository: Excepción en verifyToken: ${e.message}") // Debug
             Result.failure(Exception("Error verificando token: ${e.message}"))
         }
     }
@@ -88,10 +94,16 @@ class UserRepository(
      */
     suspend fun getUserProfile(token: String): Result<Map<String, Any>> {
         return try {
+            println("🔑 UserRepository: Token recibido: ${token.take(50)}...") // Debug
             val authHeader = ApiClient.createAuthHeader(token)
+            println("📋 UserRepository: Auth header: ${authHeader.take(60)}...") // Debug
+
             val response = apiService.getUserProfile(authHeader)
+            println("📡 UserRepository: Response code: ${response.code()}") // Debug
+            println("📡 UserRepository: Response successful: ${response.isSuccessful}") // Debug
 
             if (response.isSuccessful && response.body() != null) {
+                println("✅ UserRepository: Response body: ${response.body()}") // Debug
                 Result.success(response.body()!!)
             } else {
                 val errorMsg = if (ApiClient.isTokenExpired(response.code())) {
@@ -99,9 +111,12 @@ class UserRepository(
                 } else {
                     "Error obteniendo perfil"
                 }
+                println("❌ UserRepository: Error - $errorMsg") // Debug
                 Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
+            println("💥 UserRepository: Excepción: ${e.message}") // Debug
+            e.printStackTrace()
             Result.failure(Exception("Error de conexión: ${e.message}"))
         }
     }

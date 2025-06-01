@@ -28,6 +28,8 @@ fun ProfileScreen(
     username: String = "Usuario",
     onNavigateToLogin: () -> Unit = {}
 ) {
+    println("🔗 ProfileScreen: onNavigateToLogin recibido = $onNavigateToLogin") // ✅ AGREGAR ESTO
+
     val context = LocalContext.current
     val viewModel = remember {
         ProfileViewModel(
@@ -80,7 +82,8 @@ fun ProfileScreen(
                 Row {
                     // Botón refrescar
                     IconButton(
-                        onClick = { viewModel.refreshProfile() },
+                        onClick = {
+                            viewModel.refreshProfile() },
                         enabled = uiState.enableLogout
                     ) {
                         Icon(
@@ -90,10 +93,15 @@ fun ProfileScreen(
                         )
                     }
 
+                    println("🔘 ProfileScreen: enableLogout = ${uiState.enableLogout}")
+                    println("🔘 ProfileScreen: uiState completo = $uiState")
+
                     // Botón logout
                     IconButton(
-                        onClick = {
+                            onClick = {
+                            println("🚪 ProfileScreen: ¡CLICK EN LOGOUT DETECTADO!") // ✅ AGREGAR ESTO
                             viewModel.logout {
+                                println("🚪 ProfileScreen: onLogoutComplete ejecutado") // ✅ AGREGAR ESTO
                                 onNavigateToLogin()
                             }
                         },

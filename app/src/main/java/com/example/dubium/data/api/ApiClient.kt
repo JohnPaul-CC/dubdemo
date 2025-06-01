@@ -14,11 +14,11 @@ object ApiClient {
 
     // 🌐 URLs de conexión
     private const val BASE_URL_EMULATOR = "http://10.0.2.2:8080/"     // Para emulador Android Studio
-    private const val BASE_URL_DEVICE = "http://192.168.1.100:8080/"  // Para dispositivo físico (cambiar IP)
+    private const val BASE_URL_DEVICE = "http://192.168.0.23:8080/"  // Para dispositivo físico (cambiar IP)
     private const val BASE_URL_LOCALHOST = "http://localhost:8080/"    // Para testing en PC
 
     // Usar URL según el entorno
-    private const val BASE_URL = BASE_URL_LOCALHOST // ← Cambiar según necesites
+    private const val BASE_URL = BASE_URL_DEVICE // ← Cambiar según necesites
 
     // 📝 Configuración de logging para debugging
     private val loggingInterceptor = HttpLoggingInterceptor().apply {

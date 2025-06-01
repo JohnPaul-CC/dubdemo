@@ -36,22 +36,31 @@ class ProfileViewModel(
      * Cargar perfil del usuario desde la API
      */
     fun loadUserProfile() {
+        println("🔄 ProfileViewModel: Iniciando loadUserProfile()") // Debug
         _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = "")
 
         viewModelScope.launch {
             try {
                 val token = tokenManager.getToken()
+                println("🔑 ProfileViewModel: Token obtenido: ${token?.take(50)}...") // Debug
+
                 if (token != null) {
+                    println("📡 ProfileViewModel: Llamando a getUserProfile...") // Debug
                     userRepository.getUserProfile(token).fold(
                         onSuccess = { userInfo ->
-                            // Extraer información del usuario del Map
+                            println("✅ ProfileViewModel: Respuesta exitosa: $userInfo")
+
+                            // ✅ CAMBIAR ESTA LÍNEA - ahora userInfo ya tiene la estructura correcta
                             val userData = userInfo["data"] as? Map<String, Any>
+                            println("👤 ProfileViewModel: UserData extraída: $userData")
+
                             if (userData != null) {
                                 val userDto = UserDto(
                                     id = (userData["id"] as? Double)?.toInt() ?: 0,
                                     username = userData["username"] as? String ?: "Usuario",
                                     createdAt = userData["createdAt"] as? String ?: ""
                                 )
+                                println("✅ ProfileViewModel: UserDto creado: $userDto")
 
                                 _user.value = userDto
                                 _uiState.value = _uiState.value.copy(
@@ -59,20 +68,32 @@ class ProfileViewModel(
                                     isUserLoaded = true
                                 )
                             } else {
+                                println("❌ ProfileViewModel: userData es null")
                                 handleProfileError("Error obteniendo datos del usuario")
                             }
                         },
                         onFailure = { exception ->
+                            println("❌ ProfileViewModel: Error en API call: ${exception.message}")
                             handleProfileError(exception.message ?: "Error de conexión")
                         }
                     )
                 } else {
-                    // No hay token - shouldn't happen pero manejar
+                    println("❌ ProfileViewModel: Token es null") // Debug
                     handleProfileError("Sesión expirada")
                 }
             } catch (e: Exception) {
+                println("💥 ProfileViewModel: Excepción: ${e.message}") // Debug
+                e.printStackTrace()
                 handleProfileError("Error inesperado: ${e.message}")
             }
+        }
+    }
+
+    fun resetState() {
+        viewModelScope.launch {
+            tokenManager.clearToken()
+            _user.value = null
+            _uiState.value = ProfileUiState()
         }
     }
 
@@ -80,27 +101,28 @@ class ProfileViewModel(
      * Realizar logout
      */
     fun logout(onLogoutComplete: () -> Unit) {
+        println("🚪 ProfileViewModel: logout() iniciado") // Debug
         _uiState.value = _uiState.value.copy(isLoggingOut = true)
 
         viewModelScope.launch {
             try {
-                // Opcional: notificar al servidor sobre logout
+                println("🚪 ProfileViewModel: Intentando logout en servidor...") // Debug
                 val token = tokenManager.getToken()
                 if (token != null) {
-                    // Intentar logout en servidor (no crítico si falla)
                     userRepository.logout(token)
+                    println("🚪 ProfileViewModel: Logout en servidor completado") // Debug
                 }
             } catch (e: Exception) {
-                // Ignorar errores de logout en servidor
+                println("🚪 ProfileViewModel: Error en logout servidor: ${e.message}") // Debug
             } finally {
-                // Siempre limpiar token local
+                println("🚪 ProfileViewModel: Limpiando token local...") // Debug
                 tokenManager.clearToken()
 
                 // Reset estado
                 _user.value = null
                 _uiState.value = ProfileUiState()
 
-                // Notificar que logout completó
+                println("🚪 ProfileViewModel: Llamando onLogoutComplete()") // Debug
                 onLogoutComplete()
             }
         }
@@ -110,6 +132,8 @@ class ProfileViewModel(
      * Refrescar datos del usuario
      */
     fun refreshProfile() {
+        println("🔄 ProfileViewModel: refreshProfile() llamado") // Debug
+        println("🔄 ProfileViewModel: Estado actual: ${_uiState.value}") // Debug
         loadUserProfile()
     }
 
@@ -117,28 +141,42 @@ class ProfileViewModel(
      * Verificar si el token sigue siendo válido
      */
     fun verifyTokenValidity(onTokenInvalid: () -> Unit) {
+        println("🔍 ProfileViewModel: verifyTokenValidity() iniciado")
         viewModelScope.launch {
             try {
                 val token = tokenManager.getToken()
+                println("🔍 ProfileViewModel: Token para verificar: ${token?.take(50)}...")
+
                 if (token != null) {
                     userRepository.verifyToken(token).fold(
                         onSuccess = {
+                            println("✅ ProfileViewModel: Token válido")
                             // Token válido - no hacer nada
                         },
-                        onFailure = {
-                            // Token inválido - limpiar y redirigir
-                            tokenManager.clearToken()
-                            onTokenInvalid()
+                        onFailure = { error ->
+                            println("❌ ProfileViewModel: Token inválido: ${error.message}")
+
+                            // ✅ Solo limpiar token si es realmente inválido (401)
+                            // No limpiar por errores de red (timeout, etc.)
+                            if (error.message?.contains("Token inválido") == true ||
+                                error.message?.contains("no válido") == true) {
+                                println("🗑️ ProfileViewModel: Limpiando token inválido...")
+                                tokenManager.clearToken()
+                                onTokenInvalid()
+                            } else {
+                                println("⚠️ ProfileViewModel: Error de red, manteniendo token")
+                                // No limpiar token por errores temporales
+                            }
                         }
                     )
                 } else {
-                    // No hay token
+                    println("❌ ProfileViewModel: No hay token")
                     onTokenInvalid()
                 }
             } catch (e: Exception) {
-                // En caso de error, asumir token inválido
-                tokenManager.clearToken()
-                onTokenInvalid()
+                println("💥 ProfileViewModel: Excepción en verifyTokenValidity: ${e.message}")
+                // ✅ No limpiar token por excepciones de red
+                println("⚠️ ProfileViewModel: Manteniendo token por excepción")
             }
         }
     }

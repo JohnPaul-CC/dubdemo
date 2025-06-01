@@ -34,7 +34,6 @@ fun DubiumNavigation(
                 },
                 onNavigateToHome = { username ->
                     navController.navigate(Routes.createHomeRoute(username)) {
-                        // Limpiar el stack de navegación para que no pueda volver atrás
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 }
@@ -49,17 +48,25 @@ fun DubiumNavigation(
                 },
                 onNavigateToHome = { username ->
                     navController.navigate(Routes.createHomeRoute(username)) {
-                        // Limpiar el stack de navegación
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 }
             )
         }
 
-        // Pantalla de Home
+        // ✅ Pantalla de Home - AGREGAR onNavigateToLogin
         composable(Routes.HOME) { backStackEntry ->
             val username = backStackEntry.arguments?.getString("username") ?: "Usuario"
-            ProfileScreen(username = username)
+            ProfileScreen(
+                username = username,
+                onNavigateToLogin = {
+                    println("🔗 Navigation: Navegando a Login desde logout") // Debug
+                    navController.navigate(Routes.LOGIN) {
+                        // Limpiar todo el stack de navegación
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
